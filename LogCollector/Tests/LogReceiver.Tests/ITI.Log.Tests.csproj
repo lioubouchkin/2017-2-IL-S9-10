@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net461</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../LogReceiver/LogReceiver.csproj" />
+    <PackageReference Include="NUnit" Version="[2.6.4]" />
+    <PackageReference Include="FluentAssertions" Version="4.19.4" />
+  </ItemGroup>
+  
+</Project>

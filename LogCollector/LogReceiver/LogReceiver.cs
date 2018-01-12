@@ -6,27 +6,6 @@ using System.Linq;
 namespace ITI.Log
 {
 
-    interface I<T> where T : I<T>
-    {
-        T Clone();
-    }
-
-    class X : I<X>
-    {
-        public X Clone()
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-
-
-
-
-
-
-
-
     public class LogReceiver
     {
         readonly BlockingCollection<LogMessage> _queue;
@@ -56,13 +35,12 @@ namespace ITI.Log
 
         ILogHandler FromConfig( ILogHandlerConfig config )
         {
-            // 2 cents trick...
-            string typeHandlerName = config.GetType()
-                                        .AssemblyQualifiedName
-                                        .Replace( "Config,", "," );
-            Type typeHandler = Type.GetType( typeHandlerName, throwOnError: true );
-            object handler = Activator.CreateInstance( typeHandler, config.Clone() );
-            return (ILogHandler)handler;
+            // 2 cents trick (and one line).
+            return (ILogHandler)Activator.CreateInstance(
+                                            Type.GetType( config.GetType()
+                                                   .AssemblyQualifiedName
+                                                   .Replace( "Config,", "," ), throwOnError: true ),
+                                            config.Clone() );
         }
 
         public void Start()
