@@ -1,9 +1,32 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 
 namespace ITI.Log
 {
+
+    interface I<T> where T : I<T>
+    {
+        T Clone();
+    }
+
+    class X : I<X>
+    {
+        public X Clone()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+
+
+
+
+
+
+
+
     public class LogReceiver
     {
         readonly BlockingCollection<LogMessage> _queue;
@@ -27,7 +50,19 @@ namespace ITI.Log
 
         public void Configure( LogReceiverConfig config, bool waitForApplication = false )
         {
+            var allHandlers = config.Configs.Select( c => FromConfig( c ) ).ToList();
 
+        }
+
+        ILogHandler FromConfig( ILogHandlerConfig config )
+        {
+            // 2 cents trick...
+            string typeHandlerName = config.GetType()
+                                        .AssemblyQualifiedName
+                                        .Replace( "Config,", "," );
+            Type typeHandler = Type.GetType( typeHandlerName, throwOnError: true );
+            object handler = Activator.CreateInstance( typeHandler, config.Clone() );
+            return (ILogHandler)handler;
         }
 
         public void Start()

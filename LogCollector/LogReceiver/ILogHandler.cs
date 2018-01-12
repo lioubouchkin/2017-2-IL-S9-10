@@ -1,7 +1,7 @@
-﻿namespace ITI.Log
+namespace ITI.Log
 {
     public interface ILogHandler
     {
-        void Handle(LogMessage m);
+        void Handle( LogMessage m );
     }
 }
