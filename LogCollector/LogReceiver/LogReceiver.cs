@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace ITI.Log
 {
@@ -10,11 +13,17 @@ namespace ITI.Log
     {
         readonly BlockingCollection<LogMessage> _queue;
         readonly string _internalLogPath;
+        readonly object _startLock;
+        static readonly LogMessage _endMessage = new LogMessage( "Pouf" );
+        Thread _thread;
+        IReadOnlyList<ILogHandler> _handlers;
+
 
         public LogReceiver( string internalLogPath )
         {
             _internalLogPath = CheckValidInternalLogPath( internalLogPath);
             _queue = new BlockingCollection<LogMessage>();
+            _startLock = new object();
         }
 
         private static string CheckValidInternalLogPath(string internalLogPath)
@@ -25,12 +34,6 @@ namespace ITI.Log
             File.WriteAllText(testPath, "test");
             File.Delete(testPath);
             return testPath;
-        }
-
-        public void Configure( LogReceiverConfig config, bool waitForApplication = false )
-        {
-            var allHandlers = config.Configs.Select( c => FromConfig( c ) ).ToList();
-
         }
 
         ILogHandler FromConfig( ILogHandlerConfig config )
@@ -45,11 +48,44 @@ namespace ITI.Log
 
         public void Start()
         {
+            lock( _startLock )
+            {
+                if( _thread == null )
+                {
+                    _thread = new Thread( DispatchMessages );
+                    _thread.Name = "LogReceiver thread.";
+                    _thread.IsBackground = true;
+                    _thread.Start();
+                }
+            }
+        }
 
+        public bool IsRunning => _thread != null;
+
+        public void Configure( LogReceiverConfig config, bool waitForApplication = false )
+        {
+            _handlers = config.Configs
+                              .Select( c => FromConfig( c ) )
+                              .ToList();
+
+        }
+
+        void DispatchMessages()
+        {
+            for( ; ; )
+            {
+                var m = _queue.Take();
+                if( m == _endMessage ) break;
+                foreach( var h in _handlers )
+                {
+                    h.Handle( m );
+                }
+            }
         }
 
         public void Stop()
         {
+            SendLog( _endMessage );
         }
 
         public void SendLog(LogMessage m)

@@ -17,6 +17,7 @@ namespace ITI.Log.Tests
         {
             LogReceiver r = new LogReceiver( InternalLogPath );
             r.Invoking( sut => sut.Start() ).ShouldNotThrow();
+            r.Stop();
         }
 
     }
